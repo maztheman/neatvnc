@@ -49,7 +49,6 @@ struct nvnc_fb* nvnc_fb_new(uint16_t width, uint16_t height,
 	fb->height = height;
 	fb->fourcc_format = fourcc_format;
 	fb->stride = stride;
-	fb->bpp_stride = width * bpp;
 	fb->pts = NVNC_NO_PTS;
 
 	size_t size = height * stride * bpp;
@@ -83,7 +82,6 @@ struct nvnc_fb* nvnc_fb_from_buffer(void* buffer, uint16_t width, uint16_t heigh
 	fb->height = height;
 	fb->fourcc_format = fourcc_format;
 	fb->stride = stride;
-	fb->bpp_stride = width * bpp;
 	fb->pts = NVNC_NO_PTS;
 
 	return fb;
@@ -146,7 +144,7 @@ int32_t nvnc_fb_get_stride(const struct nvnc_fb* fb)
 EXPORT
 int32_t nvnc_fb_get_bpp_stride(const struct nvnc_fb* fb)
 {
-	return fb->bpp_stride;
+	return fb->width * pixel_size_from_fourcc(fb->fourcc_format);
 }
 
 EXPORT
@@ -265,7 +263,6 @@ int nvnc_fb_map(struct nvnc_fb* fb)
 	fb->addr = gbm_bo_map(fb->bo, 0, 0, fb->width, fb->height,
 			GBM_BO_TRANSFER_READ, &stride, &fb->bo_map_handle);
 	fb->stride = stride / nvnc_fb_get_pixel_size(fb);
-	fb->bpp_stride = stride;
 	if (fb->addr)
 		return 0;
 
@@ -288,6 +285,5 @@ void nvnc_fb_unmap(struct nvnc_fb* fb)
 	fb->bo_map_handle = NULL;
 	fb->addr = NULL;
 	fb->stride = 0;
-	fb->bpp_stride = 0;
 #endif
 }

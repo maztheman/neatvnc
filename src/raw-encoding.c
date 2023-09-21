@@ -72,7 +72,7 @@ static int raw_encode_box(struct raw_encoder_work* ctx, struct vec* dst,
 	uint8_t* b = fb->addr;
 	uint32_t src_bpp = calc_bytes_per_cpixel(src_fmt);
 	int32_t xoff = x_start * src_bpp;
-	int32_t src_stride = fb->bpp_stride;
+	int32_t src_stride = fb->width * src_bpp;
 
 	int bpp = dst_fmt->bits_per_pixel / 8;
 

@@ -94,12 +94,14 @@ int cursor_encode(struct vec* dst, struct rfb_pixel_format* pixfmt,
 	uint8_t* dstdata = dst->data;
 	dstdata += dst->len;
 
+	int32_t bpp_stride = image->width * (srcfmt.bits_per_pixel / 8);
+
 	if((int32_t)width == image->stride) {
 		pixel_to_cpixel(dstdata, pixfmt, image->addr, &srcfmt, bpp, size);
 	} else {
 		for (uint32_t y = 0; y < height; ++y) {
 			pixel_to_cpixel(dstdata + y * bpp * width, pixfmt,
-					(uint8_t*)image->addr + y * image->bpp_stride,
+					(uint8_t*)image->addr + y * bpp_stride,
 					&srcfmt, bpp, width);
 		}
 	}
