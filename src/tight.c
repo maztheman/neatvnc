@@ -337,7 +337,7 @@ static enum TJPF tight_get_jpeg_pixfmt(uint32_t fourcc)
 	case DRM_FORMAT_XBGR8888:
 		return TJPF_RGBX;
 	case DRM_FORMAT_BGR888:
-	    return TJPF_BGR;
+	    return TJPF_RGB;
 	}
 
 	return TJPF_UNKNOWN;

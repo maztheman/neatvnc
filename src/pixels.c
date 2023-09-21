@@ -169,7 +169,7 @@ void pixel_to_cpixel(uint8_t* restrict dst,
 	assert(dst_fmt->depth <= 32);
 	assert(bytes_per_cpixel <= 4 && bytes_per_cpixel >= 1);
 
-	uint32_t src_bpp = calc_bytes_per_cpixel(src_fmt);
+	uint32_t src_bpp = src_fmt->bits_per_pixel / 8;
 	uint32_t src_red_shift = src_fmt->red_shift;
 	uint32_t src_green_shift = src_fmt->green_shift;
 	uint32_t src_blue_shift = src_fmt->blue_shift;
