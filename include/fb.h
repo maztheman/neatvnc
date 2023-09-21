@@ -43,7 +43,7 @@ struct nvnc_fb {
 	/* main memory buffer attributes */
 	void* addr;
 	int32_t stride;
-	int32_t byte_stride;
+	int32_t bpp_stride;
 
 	/* dmabuf attributes */
 	struct gbm_bo* bo;
