@@ -209,7 +209,8 @@ void pixel_to_cpixel(uint8_t* restrict dst,
 		if (dst_fmt->big_endian_flag) {
 			while (len--) {
 				uint32_t cpx, px;
-				memcpy(&px, src, src_bpp), src += src_bpp;
+				memcpy(&px, src, src_bpp);
+				src += src_bpp;
 
 				CONVERT_PIXELS(cpx, px)
 
@@ -221,7 +222,8 @@ void pixel_to_cpixel(uint8_t* restrict dst,
 		} else {
 			while (len--) {
 				uint32_t cpx, px;
-				memcpy(&px, src, src_bpp), src += src_bpp;
+				memcpy(&px, src, src_bpp);
+				src += src_bpp;
 
 				CONVERT_PIXELS(cpx, px)
 
@@ -249,7 +251,8 @@ void pixel_to_cpixel(uint8_t* restrict dst,
 
 		while (len--) {
 			uint32_t cpx, px;
-			memcpy(&px, src, src_bpp), src += src_bpp;
+			memcpy(&px, src, src_bpp);
+			src += src_bpp;
 
 			CONVERT_PIXELS(cpx, px)
 
@@ -263,7 +266,8 @@ void pixel_to_cpixel(uint8_t* restrict dst,
 
 		while (len--) {
 			uint32_t cpx, px;
-			memcpy(&px, src, src_bpp), src += src_bpp;
+			memcpy(&px, src, src_bpp);
+			src += src_bpp;
 
 			CONVERT_PIXELS(cpx, px)
 
@@ -274,7 +278,8 @@ void pixel_to_cpixel(uint8_t* restrict dst,
 	case 1:
 		while (len--) {
 			uint32_t cpx, px;
-			memcpy(&px, src, src_bpp), src += src_bpp;
+			memcpy(&px, src, src_bpp);
+			src += src_bpp;
 
 			CONVERT_PIXELS(cpx, px)
 

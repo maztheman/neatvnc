@@ -66,7 +66,7 @@ static uint32_t damage_hash_tile(struct damage_refinery* self, uint32_t tx,
 {
 	uint8_t* pixels = buffer->addr;
 	int bpp = pixel_size_from_fourcc(buffer->fourcc_format);
-	int stride = buffer->width * bpp;
+	int byte_stride = buffer->stride * bpp;
 
 	int x_start = tx * 32;
 	int x_stop = MIN((tx + 1) * 32, self->width);
@@ -78,7 +78,7 @@ static uint32_t damage_hash_tile(struct damage_refinery* self, uint32_t tx,
 
 	// TODO: Support different pixel sizes
 	for (int y = y_start; y < y_stop; ++y)
-		hash = murmurhash((void*)&(pixels[xoff + y * stride]),
+		hash = murmurhash((void*)&(pixels[xoff + y * byte_stride]),
 				bpp * (x_stop - x_start), hash);
 
 	return hash;
