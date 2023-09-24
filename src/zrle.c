@@ -71,16 +71,18 @@ static inline int find_colour_in_palette(uint32_t* palette, int len,
 	return -1;
 }
 
-static int zrle_get_tile_palette(uint32_t* palette, const uint32_t* src,
+static int zrle_get_tile_palette(uint32_t* palette, const uint8_t* tile,
                                  size_t length)
 {
+	const int bpp = 4;
 	int n = 0;
 
 	/* TODO: Maybe ignore the alpha channel */
-	palette[n++] = src[0];
+	memcpy(&palette[n++], &tile[0], bpp);
 
 	for (size_t i = 0; i < length; ++i) {
-		uint32_t colour = src[i];
+		uint32_t colour;
+		memcpy(&colour, &tile[i * bpp], bpp);
 
 		if (find_colour_in_palette(palette, n, colour) < 0) {
 			if (n >= 16)
@@ -94,15 +96,14 @@ static int zrle_get_tile_palette(uint32_t* palette, const uint32_t* src,
 }
 
 static void zrle_encode_unichrome_tile(struct vec* dst,
-                                       const struct rfb_pixel_format* dst_fmt,
-                                       uint32_t colour,
-                                       const struct rfb_pixel_format* src_fmt)
+                                       const struct rfb_pixel_format* fmt,
+                                       uint32_t colour)
 {
-	int bytes_per_cpixel = calc_bytes_per_cpixel(dst_fmt);
+	int bytes_per_cpixel = calc_bytes_per_cpixel(fmt);
 
 	vec_fast_append_8(dst, 1);
 
-	pixel_to_cpixel(((uint8_t*)dst->data) + 1, dst_fmt, (uint8_t*)&colour, src_fmt,
+	pixel_to_cpixel(((uint8_t*)dst->data) + 1, fmt, (uint8_t*)&colour, fmt,
 	                  bytes_per_cpixel, 1);
 
 	dst->len += bytes_per_cpixel;
@@ -127,14 +128,14 @@ static void encode_run_length(struct vec* dst, uint8_t index, int run_length)
 
 static void zrle_encode_packed_tile(struct vec* dst,
                                     const struct rfb_pixel_format* dst_fmt,
-                                    const uint32_t* src,
+                                    const uint8_t* src,
                                     const struct rfb_pixel_format* src_fmt,
                                     size_t length, uint32_t* palette,
                                     int palette_size)
 {
 	int bytes_per_cpixel = calc_bytes_per_cpixel(dst_fmt);
 
-	uint8_t cpalette[16 * 3];
+	uint8_t cpalette[16 * 4];
 	pixel_to_cpixel((uint8_t*)cpalette, dst_fmt, (uint8_t*)palette, src_fmt,
 	                  bytes_per_cpixel, palette_size);
 
@@ -146,57 +147,71 @@ static void zrle_encode_packed_tile(struct vec* dst,
 	int run_length = 1;
 
 	for (size_t i = 1; i < length; ++i) {
-		if (src[i] == src[i - 1]) {
+		if (memcmp(src + i * bytes_per_cpixel,
+			src + (i - 1) * bytes_per_cpixel, bytes_per_cpixel) == 0) {
 			run_length++;
 			continue;
 		}
+		uint32_t colour;
+		memcpy(&colour, src + (i - 1) * bytes_per_cpixel, bytes_per_cpixel);
 
-		index = find_colour_in_palette(palette, palette_size, src[i - 1]);
+		index = find_colour_in_palette(palette, palette_size, colour);
 		encode_run_length(dst, index, run_length);
 		run_length = 1;
 	}
 
 	if (run_length > 0) {
+		uint32_t colour;
+		memcpy(&colour, src + (length - 1) * bytes_per_cpixel, bytes_per_cpixel);
 		index = find_colour_in_palette(palette, palette_size,
-		                               src[length - 1]);
+		                               colour);
 		encode_run_length(dst, index, run_length);
 	}
 }
 
-static void zrle_copy_tile(uint32_t* dst, const uint32_t* src, int stride,
-                           int width, int height)
+static void zrle_copy_tile(uint8_t* dst,
+                           const struct rfb_pixel_format* dst_fmt,
+						  const uint8_t* src,
+						  const struct rfb_pixel_format* src_fmt,
+						  int stride,
+						  int width, int height, int dst_bpp, int src_bpp)
 {
-	for (int y = 0; y < height; ++y)
-		memcpy(dst + y * width, src + y * stride, width * 4);
+	if (dst_bpp == src_bpp)
+		for (int y = 0; y < height; ++y)
+			memcpy(dst + y * width * dst_bpp,
+				src + y * stride * src_bpp, width * dst_bpp);
+	else
+		for (int y = 0; y < height; ++y)
+			pixel_to_cpixel(dst + y * width * dst_bpp, dst_fmt,
+				src + y * stride * src_bpp, src_fmt, dst_bpp, width);
 }
 
 static void zrle_encode_tile(struct vec* dst,
-                             const struct rfb_pixel_format* dst_fmt,
-                             const uint32_t* src,
-                             const struct rfb_pixel_format* src_fmt,
+                             const struct rfb_pixel_format* fmt,
+                             const uint8_t* tile,
                              size_t length)
 {
-	int bytes_per_cpixel = calc_bytes_per_cpixel(dst_fmt);
+	int bytes_per_cpixel = calc_bytes_per_cpixel(fmt);
 
 	vec_clear(dst);
 
 	uint32_t palette[16];
-	int palette_size = zrle_get_tile_palette(palette, src, length);
+	int palette_size = zrle_get_tile_palette(palette, tile, length);
 
 	if (palette_size == 1) {
-		zrle_encode_unichrome_tile(dst, dst_fmt, palette[0], src_fmt);
+		zrle_encode_unichrome_tile(dst, fmt, palette[0]);
 		return;
 	}
 
 	if (palette_size > 1) {
-		zrle_encode_packed_tile(dst, dst_fmt, src, src_fmt, length,
+		zrle_encode_packed_tile(dst, fmt, tile, fmt, length,
 		                        palette, palette_size);
 		return;
 	}
 
 	vec_fast_append_8(dst, 0);
 
-	pixel_to_cpixel(((uint8_t*)dst->data) + 1, dst_fmt, (uint8_t*)src, src_fmt,
+	pixel_to_cpixel(((uint8_t*)dst->data) + 1, fmt, tile, fmt,
 	                  bytes_per_cpixel, length);
 
 	dst->len += bytes_per_cpixel * length;
@@ -240,7 +255,7 @@ static int zrle_encode_box(struct zrle_encoder* self, struct vec* out,
 	uint16_t x_pos = self->encoder.x_pos;
 	uint16_t y_pos = self->encoder.y_pos;
 
-	uint32_t* tile = malloc(TILE_LENGTH * TILE_LENGTH * 4);
+	uint8_t* tile = malloc(TILE_LENGTH * TILE_LENGTH * 4);
 	if (!tile)
 		goto failure;
 
@@ -255,6 +270,7 @@ static int zrle_encode_box(struct zrle_encoder* self, struct vec* out,
 	/* Reserve space for size */
 	size_t size_index = out->len;
 	vec_append_zero(out, 4);
+	int32_t src_bpp = calc_bytes_per_cpixel(src_fmt);
 
 	int n_tiles = UDIV_UP(width, TILE_LENGTH) * UDIV_UP(height, TILE_LENGTH);
 
@@ -269,13 +285,16 @@ static int zrle_encode_box(struct zrle_encoder* self, struct vec* out,
 		                          : height - tile_y;
 
 		int y_off = y + tile_y;
+		int x_off = x + tile_x;
 
-		zrle_copy_tile(tile,
-		               ((uint32_t*)fb->addr) + x + tile_x + y_off * stride,
-		               stride, tile_width, tile_height);
+		uint8_t* addr = ((uint8_t*)fb->addr) + x_off * src_bpp +
+		               y_off * stride * src_bpp;
 
-		zrle_encode_tile(&in, dst_fmt, tile, src_fmt,
-		                 tile_width * tile_height);
+		zrle_copy_tile(tile, dst_fmt, addr, src_fmt, stride,
+		               tile_width, tile_height, bytes_per_cpixel, src_bpp);
+
+
+		zrle_encode_tile(&in, dst_fmt, tile, tile_width * tile_height);
 
 		r = zrle_deflate(out, &in, zs, i == n_tiles - 1);
 		if (r < 0)
@@ -339,7 +358,7 @@ static void zrle_encoder_do_work(void* obj)
 	// TODO: Calculate the ideal buffer size based on the size of the
 	// damaged area.
 	size_t buffer_size = nvnc_fb_get_stride(fb) * nvnc_fb_get_height(fb) *
-		nvnc_fb_get_pixel_size(fb);
+		4;
 
 	struct vec dst;
 	rc = vec_init(&dst, buffer_size);
