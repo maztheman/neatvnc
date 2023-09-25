@@ -303,7 +303,7 @@ static void tight_encode_tile_basic(struct tight_encoder* self,
 		memcpy(&cfmt, &self->dfmt, sizeof(cfmt));
 
 	uint8_t* addr = nvnc_fb_get_addr(self->fb);
-	uint8_t bpp = calc_bytes_per_cpixel(&self->sfmt);
+	int32_t bpp = self->sfmt.bits_per_pixel / 8;
 	int32_t byte_stride = nvnc_fb_get_stride(self->fb) * bpp;
 	int32_t xoff = x * bpp;
 	// TODO: Limit width and hight to the sides
@@ -364,7 +364,7 @@ static int tight_encode_tile_jpeg(struct tight_encoder* self,
 		return -1;
 
 	uint8_t* addr = nvnc_fb_get_addr(self->fb);
-	uint8_t bpp = calc_bytes_per_cpixel(&self->sfmt);
+	int32_t bpp = self->sfmt.bits_per_pixel / 8;
 	int32_t byte_stride = nvnc_fb_get_stride(self->fb) * bpp;
 	int32_t xoff = x * bpp;
 	uint8_t* img = addr + xoff + y * byte_stride;

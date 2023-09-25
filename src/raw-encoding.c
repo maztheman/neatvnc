@@ -70,7 +70,7 @@ static int raw_encode_box(struct raw_encoder_work* ctx, struct vec* dst,
 		return -1;
 
 	uint8_t* b = fb->addr;
-	uint32_t src_bpp = calc_bytes_per_cpixel(src_fmt);
+	int32_t src_bpp = src_fmt->bits_per_pixel / 8;
 	int32_t xoff = x_start * src_bpp;
 	int32_t src_stride = fb->stride * src_bpp;
 
@@ -134,7 +134,7 @@ static void raw_encoder_do_work(void* obj)
 	struct nvnc_fb* fb = ctx->fb;
 	assert(fb);
 
-	size_t bpp = nvnc_fb_get_pixel_size(fb);
+	size_t bpp = ctx->output_format.bits_per_pixel / 8;
 	size_t n_rects = pixman_region_n_rects(&ctx->damage);
 	if (n_rects > UINT16_MAX)
 		n_rects = 1;
