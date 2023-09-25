@@ -41,7 +41,7 @@ struct nvnc_fb* nvnc_fb_new(uint16_t width, uint16_t height,
 	if (!fb)
 		return NULL;
 
-	uint32_t bpp = pixel_size_from_fourcc(fourcc_format);
+	int32_t bpp = pixel_size_from_fourcc(fourcc_format);
 
 	fb->type = NVNC_FB_SIMPLE;
 	fb->ref = 1;
